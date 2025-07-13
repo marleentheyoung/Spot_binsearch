@@ -12,8 +12,8 @@ from dataclasses import dataclass
 import time
 from tenacity import retry, stop_after_attempt, wait_exponential
 import requests
-from ..utils.config import get_spotify_config, get_cache_config
-from ..utils.exceptions import SpotifyAPIError, AuthenticationError
+from utils.config import get_spotify_config, get_cache_config
+from utils.exceptions import SpotifyAPIError, AuthenticationError
 import pickle
 import hashlib
 from pathlib import Path

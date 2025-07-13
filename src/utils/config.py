@@ -6,10 +6,11 @@ Handles environment variables, Streamlit secrets, and application settings.
 import os
 import streamlit as st
 from typing import Optional, Dict, Any, List
-from pathlib import Path
-from pydantic import BaseSettings, Field, validator
-from pydantic_settings import SettingsConfigDict
 import logging
+from pydantic_settings import SettingsConfigDict
+from pathlib import Path
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -150,19 +151,24 @@ class AppConfig:
     def _load_spotify_config(self):
         """Load Spotify configuration from Streamlit secrets or environment."""
         try:
-            # Try Streamlit secrets first (for deployed apps)
-            if hasattr(st, 'secrets'):
-                spotify_secrets = {
-                    'client_id': st.secrets.get('SPOTIFY_CLIENT_ID'),
-                    'client_secret': st.secrets.get('SPOTIFY_CLIENT_SECRET'),
-                    'redirect_uri': st.secrets.get('SPOTIFY_REDIRECT_URI', 'http://localhost:8501')
-                }
-                
-                # Check if all required secrets are present
-                if all(spotify_secrets.values()):
-                    self.spotify = SpotifyConfig(**spotify_secrets)
-                    logger.info("Loaded Spotify config from Streamlit secrets")
-                    return
+            # Try Streamlit secrets first (for deployed apps) - but only if Streamlit is actually running
+            try:
+                # Check if we're actually in a Streamlit context
+                if hasattr(st, 'secrets') and hasattr(st.secrets, 'get'):
+                    spotify_secrets = {
+                        'client_id': st.secrets.get('SPOTIFY_CLIENT_ID'),
+                        'client_secret': st.secrets.get('SPOTIFY_CLIENT_SECRET'),
+                        'redirect_uri': st.secrets.get('SPOTIFY_REDIRECT_URI', 'http://localhost:8501')
+                    }
+                    
+                    # Check if all required secrets are present
+                    if all(spotify_secrets.values()):
+                        self.spotify = SpotifyConfig(**spotify_secrets)
+                        logger.info("Loaded Spotify config from Streamlit secrets")
+                        return
+            except Exception:
+                # Streamlit secrets not available or not in Streamlit context, fall back to env vars
+                pass
             
             # Fall back to environment variables
             self.spotify = SpotifyConfig()
